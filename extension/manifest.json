@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "PrivacyGuard AI — Before You Post",
+  "version": "1.0.0",
+  "description": "Warns you before posting a screenshot to LinkedIn, X, Instagram or Facebook if it might contain Aadhaar, PAN, phone, email, bank details or faces.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.linkedin.com/*",
+        "*://*.twitter.com/*",
+        "*://*.x.com/*",
+        "*://*.instagram.com/*",
+        "*://*.facebook.com/*"
+      ],
+      "js": ["config.js", "content.js"],
+      "css": ["banner.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

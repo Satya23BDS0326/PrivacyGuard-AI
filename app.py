@@ -1,7 +1,7 @@
 from langchain_Openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import strOutputParser
-hftughdhbb
+hftughdhb
 
 import streamlit as st 
 import os 

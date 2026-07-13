@@ -1,4 +1,4 @@
-from langchain_Openai import ChatOpenAI
+rom langchain_Openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import strOutputParser
 

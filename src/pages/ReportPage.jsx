@@ -1,7 +1,7 @@
 import React from "react";
 import RiskGauge from "../components/RiskGauge.jsx";
 
-export default function ReportPage({ risk, matches, fileName, onDownloadReport, goToResults }) {
+export default function ReportPage({ risk, matches, fileName, onDownloadReport, onDownloadPackage, goToResults }) {
   if (!risk) return null;
 
   return (
@@ -49,7 +49,10 @@ export default function ReportPage({ risk, matches, fileName, onDownloadReport, 
 
       <div className="workspace__controls" style={{ marginTop: 24 }}>
         <button className="btn btn--primary" onClick={onDownloadReport}>
-          Download report (.txt)
+          Download report (.pdf)
+        </button>
+        <button className="btn btn--ghost" onClick={onDownloadPackage}>
+          Download package (.zip)
         </button>
         <button className="btn btn--ghost" onClick={goToResults}>
           ← Back to results

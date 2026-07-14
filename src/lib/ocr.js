@@ -5,25 +5,42 @@
  * WebAssembly — the image is never uploaded anywhere. We ask for word-level
  * bounding boxes because piiDetector.js needs precise rectangles to redact.
  *
- * Tesseract's worker + language data are fetched once from a CDN on first
- * use and then cached by the browser, but recognition itself always
- * executes locally in a Web Worker / WASM sandbox.
+ * The worker is lazily created and reinitialized when the requested OCR
+ * language changes.
  */
 
 import { createWorker } from "tesseract.js";
 
 let workerPromise = null;
+let currentLanguage = "eng";
 
-function getWorker(onProgress) {
-  if (!workerPromise) {
-    workerPromise = createWorker("eng", 1, {
-      logger: (m) => {
-        if (onProgress && m.status === "recognizing text") {
-          onProgress(Math.round(m.progress * 100));
-        }
-      },
-    });
+async function createWorkerInstance(onProgress, language) {
+  const worker = createWorker({
+    logger: (m) => {
+      if (onProgress && m.status === "recognizing text") {
+        onProgress(Math.round(m.progress * 100));
+      }
+    },
+  });
+
+  await worker.load();
+  await worker.loadLanguage(language);
+  await worker.initialize(language);
+  currentLanguage = language;
+  return worker;
+}
+
+async function getWorker(onProgress, language = "eng") {
+  if (!workerPromise || currentLanguage !== language) {
+    if (workerPromise) {
+      const existing = await workerPromise;
+      await existing.terminate();
+      workerPromise = null;
+    }
+
+    workerPromise = createWorkerInstance(onProgress, language);
   }
+
   return workerPromise;
 }
 
@@ -33,10 +50,11 @@ function getWorker(onProgress) {
  *
  * @param {File|Blob|string|HTMLImageElement} image
  * @param {(percent:number)=>void} [onProgress]
+ * @param {string} [language]
  * @returns {Promise<{words: Array<{text:string,x0:number,y0:number,x1:number,y1:number,confidence:number}>, fullText: string}>}
  */
-export async function runOCR(image, onProgress) {
-  const worker = await getWorker(onProgress);
+export async function runOCR(image, onProgress, language = "eng") {
+  const worker = await getWorker(onProgress, language);
   const { data } = await worker.recognize(image);
 
   const words = (data.words || []).map((w) => ({

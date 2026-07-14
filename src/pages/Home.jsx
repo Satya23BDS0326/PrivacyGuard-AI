@@ -1,16 +1,16 @@
 import React from "react";
 
 const FEATURES = [
-  { label: "Aadhaar Numbers", weight: 30 },
-  { label: "PAN Numbers", weight: 20 },
-  { label: "Bank Account Numbers", weight: 20 },
-  { label: "Faces", weight: 15 },
-  { label: "Phone Numbers", weight: 15 },
-  { label: "QR Codes", weight: 10 },
-  { label: "Email Addresses", weight: 10 },
+  { id: "AADHAAR", label: "Aadhaar Numbers", weight: 30 },
+  { id: "PAN", label: "PAN Numbers", weight: 20 },
+  { id: "BANK_ACCOUNT", label: "Bank Account Numbers", weight: 20 },
+  { id: "FACE", label: "Faces", weight: 15 },
+  { id: "PHONE", label: "Phone Numbers", weight: 15 },
+  { id: "QR", label: "QR Codes", weight: 10 },
+  { id: "EMAIL", label: "Email Addresses", weight: 10 },
 ];
 
-export default function Home({ goToUpload }) {
+export default function Home({ goToUpload, onFeatureClick }) {
   return (
     <div className="page">
       <section className="hero">
@@ -26,16 +26,17 @@ export default function Home({ goToUpload }) {
           English, and blurs whatever you choose. Nothing is ever uploaded.
         </p>
         <button className="btn btn--primary btn--lg" onClick={goToUpload}>
-          Scan a screenshot →
+          Scan a screenshot or drop multiple files →
         </button>
+        <p className="hero__note mono">Batch upload multiple screenshots or PDFs and scan them locally in one session.</p>
       </section>
 
       <section className="feature-grid">
         {FEATURES.map((f) => (
-          <div key={f.label} className="feature-card">
+          <button key={f.id} type="button" className="feature-card feature-card--button" onClick={() => onFeatureClick(f.id)}>
             <span className="feature-card__weight mono">+{f.weight}</span>
             <span className="feature-card__label">{f.label}</span>
-          </div>
+          </button>
         ))}
       </section>
 

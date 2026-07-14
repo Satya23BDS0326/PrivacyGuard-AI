@@ -1,45 +1,74 @@
 import React, { useCallback, useRef, useState } from "react";
 
-export default function Uploader({ onFile, disabled }) {
+const ACCEPTED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".pdf"];
+
+function isAcceptedFile(file) {
+  const name = file.name?.toLowerCase() || "";
+  const type = file.type?.toLowerCase() || "";
+  return type.startsWith("image/") || type === "application/pdf" || ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext));
+}
+
+export default function Uploader({ onFiles, disabled }) {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
 
   const handleFiles = useCallback(
     (fileList) => {
-      const file = fileList?.[0];
-      if (file && file.type.startsWith("image/")) {
-        onFile(file);
+      const validFiles = Array.from(fileList || []).filter(isAcceptedFile);
+      if (validFiles.length > 0) {
+        onFiles(validFiles);
       }
     },
-    [onFile]
+    [onFiles]
   );
+
+  const openPicker = useCallback(() => {
+    if (!disabled) {
+      inputRef.current?.click();
+    }
+  }, [disabled]);
 
   return (
     <div
       className={`uploader ${dragOver ? "uploader--drag" : ""} ${disabled ? "uploader--disabled" : ""}`}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        if (!disabled) setDragOver(true);
+      }}
       onDragOver={(e) => {
         e.preventDefault();
         if (!disabled) setDragOver(true);
       }}
-      onDragLeave={() => setDragOver(false)}
+      onDragLeave={(e) => {
+        const next = e.relatedTarget;
+        if (next && e.currentTarget.contains(next)) return;
+        setDragOver(false);
+      }}
       onDrop={(e) => {
         e.preventDefault();
         setDragOver(false);
-        if (!disabled) handleFiles(e.dataTransfer.files);
+        if (!disabled) handleFiles(e.dataTransfer?.files || []);
       }}
-      onClick={() => !disabled && inputRef.current?.click()}
+      onClick={openPicker}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
-        if (!disabled && (e.key === "Enter" || e.key === " ")) inputRef.current?.click();
+        if (!disabled && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          openPicker();
+        }
       }}
     >
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.pdf"
         hidden
-        onChange={(e) => handleFiles(e.target.files)}
+        multiple
+        onChange={(e) => {
+          handleFiles(e.target.files || []);
+          e.target.value = "";
+        }}
         disabled={disabled}
       />
       <div className="uploader__icon" aria-hidden="true">
@@ -53,8 +82,8 @@ export default function Uploader({ onFile, disabled }) {
           />
         </svg>
       </div>
-      <p className="uploader__title">Drop a screenshot here, or click to upload</p>
-      <p className="uploader__hint mono">PNG · JPG · WEBP — processed locally, never sent anywhere</p>
+      <p className="uploader__title">Drop screenshots or PDFs here, or click to upload</p>
+      <p className="uploader__hint mono">PNG · JPG · WEBP · PDF — processed locally, never sent anywhere</p>
     </div>
   );
 }

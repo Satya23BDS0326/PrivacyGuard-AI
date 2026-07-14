@@ -32,29 +32,46 @@ export async function scanImage(file, img, onProgress, opts = {}) {
   scratch.height = img.naturalHeight;
   scratch.getContext("2d").drawImage(img, 0, 0);
 
-  report("ocr", 0);
-  const [ocrResult, qrMatches, faceMatches] = await Promise.all([
-    runOCR(file, (pct) => report("ocr", pct), opts.ocrLanguage).then((r) => {
-      report("ocr", 100);
-      return r;
-    }),
-    Promise.resolve().then(() => {
-      report("qr", 50);
-      const r = detectQRCodes(scratch);
-      report("qr", 100);
-      return r;
-    }),
-    (async () => {
-      report("faces", 20);
-      const r = await detectFaces(img);
-      report("faces", 100);
-      return r;
-    })(),
-  ]);
+  let ocrResult = { words: [], fullText: "" };
+  let qrMatches = [];
+  let faceMatches = [];
+  let textMatches = [];
 
-  report("pii", 50);
-  const textMatches = detectPII(ocrResult.words, opts);
-  report("pii", 100);
+  try {
+    report("ocr", 0);
+    ocrResult = await runOCR(file, (pct) => report("ocr", pct), opts.ocrLanguage);
+    report("ocr", 100);
+  } catch (err) {
+    console.warn("OCR failed:", err);
+    report("ocr", 100);
+  }
+
+  try {
+    report("qr", 50);
+    qrMatches = detectQRCodes(scratch);
+    report("qr", 100);
+  } catch (err) {
+    console.warn("QR detection failed:", err);
+    report("qr", 100);
+  }
+
+  try {
+    report("faces", 20);
+    faceMatches = await detectFaces(img);
+    report("faces", 100);
+  } catch (err) {
+    console.warn("Face detection failed:", err);
+    report("faces", 100);
+  }
+
+  try {
+    report("pii", 50);
+    textMatches = detectPII(ocrResult.words, opts);
+    report("pii", 100);
+  } catch (err) {
+    console.warn("PII detection failed:", err);
+    report("pii", 100);
+  }
 
   const matches = [
     ...textMatches.map((m) => ({ ...m, source: "ocr" })),

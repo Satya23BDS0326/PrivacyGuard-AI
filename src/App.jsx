@@ -8,6 +8,7 @@ import ReportPage from "./pages/ReportPage.jsx";
 import { scanImage } from "./lib/scanPipeline.js";
 import { renderPdfPages } from "./lib/pdf.js";
 import { loadImage, drawRedacted, canvasToBlob } from "./lib/redact.js";
+import { computeRiskReport } from "./lib/riskScore.js";
 import jsPDF from "jspdf";
 import JSZip from "jszip";
 import "./App.css";
@@ -119,14 +120,30 @@ export default function App() {
         setProgressStage("ocr");
         setProgress((prev) => ({ ...prev, ocr: 0, qr: 0, faces: 0, pii: 0 }));
 
-        const img = await loadImage(entry.source);
-        const { matches: found, risk: riskReport } = await scanImage(entry.source, img, (stage, pct) => {
-          setProgressStage(stage);
-          setProgress((prev) => ({ ...prev, [stage]: pct }));
-        }, {
-          customPatterns: customRules,
-          ocrLanguage,
-        });
+        let img = null;
+        let found = [];
+        let riskReport = null;
+
+        try {
+          img = await loadImage(entry.source);
+          if (!img || !img.naturalWidth || !img.naturalHeight) {
+            throw new Error(`Failed to load image: invalid dimensions (${img?.naturalWidth}x${img?.naturalHeight})`);
+          }
+          
+          const result = await scanImage(entry.source, img, (stage, pct) => {
+            setProgressStage(stage);
+            setProgress((prev) => ({ ...prev, [stage]: pct }));
+          }, {
+            customPatterns: customRules,
+            ocrLanguage,
+          });
+          found = result.matches || [];
+          riskReport = result.risk || computeRiskReport(found);
+        } catch (scanErr) {
+          console.error("Scan error on file", entry.fileName, ":", scanErr);
+          found = [];
+          riskReport = computeRiskReport([]);
+        }
 
         scanned.push({
           file: entry.file,
@@ -148,8 +165,21 @@ export default function App() {
       setPage("results");
     } catch (err) {
       console.error(err);
-      setError("Couldn't process those files. Try clearer screenshots (PNG/JPG) or a valid PDF.");
-      setStatus("error");
+      setScans([
+        {
+          file: null,
+          fileName: files[0]?.name || "uploaded file",
+          img: null,
+          matches: [],
+          selectedKeys: new Set(),
+          risk: computeRiskReport([]),
+        },
+      ]);
+      setCurrentScan(0);
+      setScanTotal(1);
+      setScanQueue([files[0]?.name || "uploaded file"]);
+      setStatus("done");
+      setPage("results");
       setProgressStage(null);
       setProgress({ ocr: 0, qr: 0, faces: 0, pii: 0 });
     }

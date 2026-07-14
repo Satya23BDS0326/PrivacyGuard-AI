@@ -23,7 +23,7 @@ import { computeRiskReport } from "./riskScore.js";
  * @param {HTMLImageElement} img - already-loaded image element for the same file
  * @param {(stage:string, percent:number)=>void} [onProgress]
  */
-export async function scanImage(file, img, onProgress) {
+export async function scanImage(file, img, onProgress, opts = {}) {
   const report = (stage, pct) => onProgress?.(stage, pct);
 
   // Offscreen canvas for QR scanning (jsQR needs raw pixel data).
@@ -34,7 +34,7 @@ export async function scanImage(file, img, onProgress) {
 
   report("ocr", 0);
   const [ocrResult, qrMatches, faceMatches] = await Promise.all([
-    runOCR(file, (pct) => report("ocr", pct)).then((r) => {
+    runOCR(file, (pct) => report("ocr", pct), opts.ocrLanguage).then((r) => {
       report("ocr", 100);
       return r;
     }),
@@ -53,7 +53,7 @@ export async function scanImage(file, img, onProgress) {
   ]);
 
   report("pii", 50);
-  const textMatches = detectPII(ocrResult.words);
+  const textMatches = detectPII(ocrResult.words, opts);
   report("pii", 100);
 
   const matches = [

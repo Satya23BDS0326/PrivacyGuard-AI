@@ -84,6 +84,23 @@ const PATTERNS = [
 
 const cleanToken = (t) => t.replace(/[|_~`]/g, "").trim();
 
+function buildPatternMatcher(patternDef) {
+  if (typeof patternDef.test === "function") {
+    return patternDef.test;
+  }
+
+  if (typeof patternDef.pattern === "string") {
+    try {
+      const regex = new RegExp(patternDef.pattern, patternDef.flags || "i");
+      return (joined) => regex.test(joined);
+    } catch {
+      return () => false;
+    }
+  }
+
+  return () => false;
+}
+
 function unionBox(boxes) {
   const x0 = Math.min(...boxes.map((b) => b.x0));
   const y0 = Math.min(...boxes.map((b) => b.y0));
@@ -94,10 +111,14 @@ function unionBox(boxes) {
 
 /**
  * @param {Array<{text:string, x0:number,y0:number,x1:number,y1:number}>} words
- * @param {{includeLowPriority?: boolean}} opts
+ * @param {{includeLowPriority?: boolean, customPatterns?: Array}} opts
  * @returns {Array<{id:string,label:string,color:string,value:string,box:object,wordIndexes:number[]}>}
  */
 export function detectPII(words, opts = {}) {
+  const patterns = PATTERNS.concat(opts.customPatterns || []).map((pattern) => ({
+    ...pattern,
+    test: buildPatternMatcher(pattern),
+  }));
   const matches = [];
   const consumed = new Set();
 
@@ -106,7 +127,7 @@ export function detectPII(words, opts = {}) {
 
     let bestMatch = null;
 
-    for (const pattern of PATTERNS) {
+    for (const pattern of patterns) {
       if (pattern.lowPriority && !opts.includeLowPriority) continue;
 
       for (let span = 1; span <= pattern.maxWindow; span++) {

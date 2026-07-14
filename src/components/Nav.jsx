@@ -7,7 +7,7 @@ const LINKS = [
   { id: "report", label: "Privacy Report" },
 ];
 
-export default function Nav({ page, setPage, hasScan }) {
+export default function Nav({ page, setPage, hasScan, isOnline, deferredPrompt, onPromptInstall }) {
   return (
     <header className="header">
       <div className="header__brand" onClick={() => setPage("home")} role="button" tabIndex={0}>
@@ -38,9 +38,19 @@ export default function Nav({ page, setPage, hasScan }) {
         })}
       </nav>
 
-      <div className="header__badge mono">
-        <span className="header__dot" />
-        ON-DEVICE — NOTHING UPLOADED
+      <div className="header__badge-group">
+        <div className={`header__badge mono ${isOnline ? "" : "header__badge--offline"}`}>
+          <span className="header__dot" />
+          {isOnline ? "ONLINE — ON-DEVICE ONLY" : "OFFLINE MODE — LOCAL ONLY"}
+        </div>
+        <div className="header__badge header__badge--secondary mono">
+          Network Status: Offline Capable
+        </div>
+        {deferredPrompt && (
+          <button type="button" className="btn btn--ghost header__install" onClick={onPromptInstall}>
+            Install App
+          </button>
+        )}
       </div>
     </header>
   );
